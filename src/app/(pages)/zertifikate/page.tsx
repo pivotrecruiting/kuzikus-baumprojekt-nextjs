@@ -21,7 +21,7 @@ const mockCertificates = [
     occasion: "Hochzeit",
     creationDate: "24.04.2024",
     expiryDate: "24.04.2025",
-    treeImg: "/tree-1.jpg",
+    treeImg: "/tree-1.webp",
     qr: "/qr-1.png",
     coordinates: "-23.23373, 18.39033",
     treeName: "Kameldornbaum",
@@ -34,7 +34,7 @@ const mockCertificates = [
     occasion: "Geburtstag",
     creationDate: "12.03.2024",
     expiryDate: "12.03.2025",
-    treeImg: "/tree-2.jpg",
+    treeImg: "/tree-1.webp",
     qr: "/qr-2.png",
     coordinates: "-23.23380, 18.39040",
     treeName: "Kameldornbaum",
@@ -47,7 +47,7 @@ const mockCertificates = [
     occasion: "Geburtstag",
     creationDate: "01.01.2024",
     expiryDate: "01.01.2025",
-    treeImg: "/tree-3.jpg",
+    treeImg: "/tree-1.webp",
     qr: "/qr-3.png",
     coordinates: "-23.23390, 18.39050",
     treeName: "Kameldornbaum",
@@ -60,7 +60,7 @@ const mockCertificates = [
     occasion: "Geburtstag",
     creationDate: "15.02.2024",
     expiryDate: "15.02.2025",
-    treeImg: "/tree-4.jpg",
+    treeImg: "/tree-1.webp",
     qr: "/qr-4.png",
     coordinates: "-23.23400, 18.39060",
     treeName: "Kameldornbaum",
@@ -73,7 +73,7 @@ const mockCertificates = [
     occasion: "Geburtstag",
     creationDate: "20.05.2024",
     expiryDate: "20.05.2025",
-    treeImg: "/tree-5.jpg",
+    treeImg: "/tree-1.webp",
     qr: "/qr-5.png",
     coordinates: "-23.23410, 18.39070",
     treeName: "Kameldornbaum",
@@ -94,7 +94,7 @@ export default function Page() {
           </Button>
         </Link>
       </div>
-      <ScrollArea className="bg-background max-h-[70vh] rounded-lg border">
+      <ScrollArea className="bg-card border-primary max-h-[70vh] rounded-lg border px-2 shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
