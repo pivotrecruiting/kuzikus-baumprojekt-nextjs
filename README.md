@@ -45,3 +45,5 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 ### Replace env variables -> see .env.example
 
 ### Replace Supabase Triggers & Functions -> See Notion workspace for supabase setup
+
+Push main
