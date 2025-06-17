@@ -26,7 +26,7 @@ export function QRCodeDialog({ qrCodeUrl, linkUrl }: QRCodeDialogProps) {
           />
         </div>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>QR Code</DialogTitle>
         </DialogHeader>

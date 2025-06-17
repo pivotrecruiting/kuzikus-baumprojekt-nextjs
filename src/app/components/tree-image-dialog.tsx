@@ -31,7 +31,7 @@ export function TreeImageDialog({
           />
         </div>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>
             Baum {treeName} ({treeId})
