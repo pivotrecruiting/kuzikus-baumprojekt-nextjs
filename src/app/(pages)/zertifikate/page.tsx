@@ -10,9 +10,9 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Plus } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { QRCodeDialog } from "@/app/components/qr-code-dialog";
+import { TreeImageDialog } from "@/app/components/tree-image-dialog";
 
 // Mockdaten für 5 Zertifikate
 const mockCertificates = [
@@ -127,12 +127,10 @@ export default function Page() {
                 <TableCell>{cert.creationDate}</TableCell>
                 <TableCell>{cert.expiryDate}</TableCell>
                 <TableCell>
-                  <Image
-                    src={cert.treeImg}
-                    alt="Baum"
-                    width={80}
-                    height={40}
-                    className="rounded-md object-cover"
+                  <TreeImageDialog
+                    imageUrl={cert.treeImg}
+                    treeName={cert.treeName}
+                    treeId={cert.treeId}
                   />
                 </TableCell>
                 <TableCell>
