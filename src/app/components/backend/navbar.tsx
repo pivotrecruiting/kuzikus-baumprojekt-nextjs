@@ -12,15 +12,22 @@ export function Navbar() {
       <Container>
         <div className="flex items-center justify-between py-2">
           <Link href="/">
-            <CompanyLogo />
+            <CompanyLogo className="w-48" />
           </Link>
-          <div className="flex items-center gap-6 py-3">
+          <div className="flex items-center gap-8 py-6">
             <LinkAnchor
               className="text-muted-foreground font-medium"
-              size="md"
+              size="lg"
               href="/"
             >
               Dashboard
+            </LinkAnchor>
+            <LinkAnchor
+              className="text-muted-foreground font-medium"
+              size="lg"
+              href="/zertifikate"
+            >
+              Zertifikate
             </LinkAnchor>
           </div>
           <div className="flex items-center gap-2">
