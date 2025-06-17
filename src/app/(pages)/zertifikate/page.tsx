@@ -12,6 +12,7 @@ import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { QRCodeDialog } from "@/app/components/qr-code-dialog";
 
 // Mockdaten für 5 Zertifikate
 const mockCertificates = [
@@ -23,6 +24,7 @@ const mockCertificates = [
     expiryDate: "24.04.2025",
     treeImg: "/tree-1.webp",
     qr: "/qr-code.png",
+    qrLink: "https://kuzikus.de/zertifikate/VE-229",
     coordinates: "-23.23373, 18.39033",
     treeName: "Kameldornbaum",
     treeId: "VE-589",
@@ -36,6 +38,7 @@ const mockCertificates = [
     expiryDate: "12.03.2025",
     treeImg: "/tree-1.webp",
     qr: "/qr-code.png",
+    qrLink: "https://kuzikus.de/zertifikate/VE-230",
     coordinates: "-23.23380, 18.39040",
     treeName: "Kameldornbaum",
     treeId: "VE-598",
@@ -49,6 +52,7 @@ const mockCertificates = [
     expiryDate: "01.01.2025",
     treeImg: "/tree-1.webp",
     qr: "/qr-code.png",
+    qrLink: "https://kuzikus.de/zertifikate/VE-231",
     coordinates: "-23.23390, 18.39050",
     treeName: "Kameldornbaum",
     treeId: "VE-436",
@@ -62,6 +66,7 @@ const mockCertificates = [
     expiryDate: "15.02.2025",
     treeImg: "/tree-1.webp",
     qr: "/qr-code.png",
+    qrLink: "https://kuzikus.de/zertifikate/VE-232",
     coordinates: "-23.23400, 18.39060",
     treeName: "Kameldornbaum",
     treeId: "VE-202",
@@ -75,6 +80,7 @@ const mockCertificates = [
     expiryDate: "20.05.2025",
     treeImg: "/tree-1.webp",
     qr: "/qr-code.png",
+    qrLink: "https://kuzikus.de/zertifikate/VE-233",
     coordinates: "-23.23410, 18.39070",
     treeName: "Kameldornbaum",
     treeId: "VE-770",
@@ -130,13 +136,7 @@ export default function Page() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Image
-                    src={cert.qr}
-                    alt="QR Code"
-                    width={40}
-                    height={40}
-                    className="rounded"
-                  />
+                  <QRCodeDialog qrCodeUrl={cert.qr} linkUrl={cert.qrLink} />
                 </TableCell>
                 <TableCell>{cert.coordinates}</TableCell>
                 <TableCell>{cert.treeName}</TableCell>
