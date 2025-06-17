@@ -19,7 +19,7 @@ export default function AuthLayout({
             </div>
 
             <div className="flex w-full flex-1 items-start justify-center sm:items-center">
-              <div className="bg-card relative mb-6 w-full max-w-md rounded-lg p-6 shadow-xl sm:mb-8 sm:p-6 md:p-8">
+              <div className="bg-card border-primary relative mb-6 w-full max-w-md rounded-lg border p-6 shadow-xl sm:mb-8 sm:p-6 md:p-8">
                 {children}
               </div>
             </div>

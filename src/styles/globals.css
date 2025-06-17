@@ -18,7 +18,7 @@
   --color-foreground: oklch(
     0.2549 0.0019 106.5582
   ); /* #252525 - font color on white background */
-  --color-card: oklch(0.9843 0.0071 85.8736); /* #fcfbf2 */
+  --color-card: oklch(1 0 0); /* #e3e3e3 */
   --color-card-foreground: oklch(0.2549 0.0019 106.5582); /* #252525 */
   --color-popover: oklch(0.9843 0.0071 85.8736); /* #fcfbf2 */
   --color-popover-foreground: oklch(0.2549 0.0019 106.5582); /* #252525 */
