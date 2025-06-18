@@ -6,6 +6,8 @@ import { InputWithLabel } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { ErrorMessage } from "@/app/(pages)/(auth)/components/error-message";
 import { Upload, X } from "lucide-react";
+import exifr from "exifr";
+import Image from "next/image";
 
 export default function Page() {
   const [formData, setFormData] = useState({
@@ -28,6 +30,7 @@ export default function Page() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [treeImage, setTreeImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageMetadata, setImageMetadata] = useState<unknown>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Set default expiry date to 1 year from now
@@ -81,6 +84,44 @@ export default function Page() {
     return null;
   };
 
+  const extractImageMetadata = async (file: File) => {
+    try {
+      // Extract all EXIF data
+      const exifData = await exifr.parse(file);
+
+      if (exifData) {
+        console.log("EXIF Metadata:", exifData);
+        setImageMetadata(exifData);
+
+        // Log specific useful metadata
+        if (exifData.DateTime) {
+          console.log("Aufnahmedatum:", exifData.DateTime);
+        }
+        if (exifData.GPSLatitude && exifData.GPSLongitude) {
+          console.log("GPS Koordinaten:", {
+            latitude: exifData.GPSLatitude,
+            longitude: exifData.GPSLongitude,
+          });
+        }
+        if (exifData.Make && exifData.Model) {
+          console.log("Kamera:", `${exifData.Make} ${exifData.Model}`);
+        }
+        if (exifData.ImageWidth && exifData.ImageHeight) {
+          console.log(
+            "Bildgröße:",
+            `${exifData.ImageWidth}x${exifData.ImageHeight}`
+          );
+        }
+      } else {
+        console.log("Keine EXIF-Metadaten gefunden");
+        setImageMetadata(null);
+      }
+    } catch (error) {
+      console.error("Fehler beim Extrahieren der EXIF-Metadaten:", error);
+      setImageMetadata(null);
+    }
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
 
@@ -110,6 +151,9 @@ export default function Page() {
     // Create preview URL
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
+
+    // Extract image metadata
+    extractImageMetadata(file);
   };
 
   const handleImageDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -142,6 +186,9 @@ export default function Page() {
     // Create preview URL
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
+
+    // Extract image metadata
+    extractImageMetadata(file);
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -150,6 +197,7 @@ export default function Page() {
 
   const removeImage = () => {
     setTreeImage(null);
+    setImageMetadata(null);
     if (imagePreview) {
       URL.revokeObjectURL(imagePreview);
       setImagePreview(null);
@@ -200,6 +248,7 @@ export default function Page() {
       // TODO: Implement form submission logic with treeImage
       console.log("Form data:", formData);
       console.log("Tree image:", treeImage);
+      console.log("Image metadata:", imageMetadata);
     }
 
     setIsSubmitting(false);
@@ -312,7 +361,7 @@ export default function Page() {
                 <div className="relative">
                   <div className="border-muted-foreground/25 rounded-md border-2 p-4">
                     <div className="relative">
-                      <img
+                      <Image
                         src={imagePreview}
                         alt="Baumbild Vorschau"
                         className="max-h-80 w-full rounded-md object-contain"
