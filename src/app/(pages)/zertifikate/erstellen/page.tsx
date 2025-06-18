@@ -465,16 +465,13 @@ export default function Page() {
         }
 
         // Send to R Markdown backend
-        const response = await fetch(
-          "http://localhost:8000/generate-certificate",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(certificateData),
-          }
-        );
+        const response = await fetch("/api/generate-certificate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(certificateData),
+        });
         console.log("response: ", response);
         if (response.ok) {
           const result = await response.json();
