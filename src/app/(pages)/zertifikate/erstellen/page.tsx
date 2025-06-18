@@ -315,12 +315,12 @@ export default function Page() {
                       <img
                         src={imagePreview}
                         alt="Baumbild Vorschau"
-                        className="h-48 w-full rounded-md object-cover"
+                        className="max-h-80 w-full rounded-md object-contain"
                       />
                       <button
                         type="button"
                         onClick={removeImage}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 absolute -top-2 -right-2 rounded-full p-1 transition-colors"
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/80 absolute -top-2 -right-2 cursor-pointer rounded-full p-1 transition-colors"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -374,6 +374,7 @@ export default function Page() {
               type="button"
               variant="outline"
               onClick={() => window.history.back()}
+              className="hover:bg-muted"
             >
               Abbrechen
             </Button>
