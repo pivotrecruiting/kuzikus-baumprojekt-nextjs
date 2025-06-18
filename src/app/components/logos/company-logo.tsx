@@ -1,17 +1,29 @@
 import Image from "next/image";
 
-export function CompanyLogo({ className }: { className?: string }) {
-  // TODO: Add real file path and alt text
+type CompanyLogoPropsT = {
+  className?: string;
+  width?: number;
+  height?: number;
+  priority?: boolean;
+};
+
+export function CompanyLogo({
+  className = "w-64 h-auto",
+  width = 112,
+  height = 30,
+  priority = true,
+}: CompanyLogoPropsT) {
   return (
-    <Image
-      src="/company-logo.png"
-      alt="Company Logo"
-      width={112}
-      height={30}
-      priority
-      aria-hidden="false"
-      role="img"
-      className={className}
-    />
+    <div className={className}>
+      <Image
+        src="/company-logo.png"
+        alt="Company Logo"
+        width={width}
+        height={height}
+        priority={priority}
+        className="h-auto w-full object-contain"
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+      />
+    </div>
   );
 }

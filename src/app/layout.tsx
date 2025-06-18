@@ -56,7 +56,10 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#ffffff" />
       </head>
-      <body className="font-barlow antialiased" suppressHydrationWarning>
+      <body
+        className="font-barlow bg-background antialiased"
+        suppressHydrationWarning
+      >
         {children}
         <Toaster />
         {/* Strukturierte Daten für das Unternehmen (JSON-LD) */}
