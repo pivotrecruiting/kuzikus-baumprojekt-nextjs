@@ -5,9 +5,10 @@ import Container from "@/app/components/container";
 import { InputWithLabel } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { ErrorMessage } from "@/app/(pages)/(auth)/components/error-message";
-import { Upload, X } from "lucide-react";
+import { Upload, X, MapPin, ExternalLink } from "lucide-react";
 import exifr from "exifr";
 import Image from "next/image";
+import QRCode from "qrcode";
 
 export default function Page() {
   const [formData, setFormData] = useState({
@@ -31,6 +32,8 @@ export default function Page() {
   const [treeImage, setTreeImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageMetadata, setImageMetadata] = useState<unknown>(null);
+  const [googleMapsLink, setGoogleMapsLink] = useState<string | null>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Set default expiry date to 1 year from now
@@ -84,6 +87,40 @@ export default function Page() {
     return null;
   };
 
+  // Convert GPS coordinates from DMS (Degrees, Minutes, Seconds) to decimal
+  const convertDMSToDecimal = (dms: number[]): number => {
+    const [degrees, minutes, seconds] = dms;
+    return degrees + minutes / 60 + seconds / 3600;
+  };
+
+  // Create Google Maps link from GPS coordinates
+  const createGoogleMapsLink = (
+    latitude: number[],
+    longitude: number[]
+  ): string => {
+    const latDecimal = convertDMSToDecimal(latitude);
+    const lngDecimal = convertDMSToDecimal(longitude);
+    return `https://www.google.com/maps?q=${latDecimal},${lngDecimal}`;
+  };
+
+  // Generate QR code for Google Maps link
+  const generateQRCode = async (url: string): Promise<string> => {
+    try {
+      const qrDataUrl = await QRCode.toDataURL(url, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF",
+        },
+      });
+      return qrDataUrl;
+    } catch (error) {
+      console.error("Fehler beim Generieren des QR-Codes:", error);
+      throw error;
+    }
+  };
+
   const extractImageMetadata = async (file: File) => {
     try {
       // Extract all EXIF data
@@ -102,6 +139,27 @@ export default function Page() {
             latitude: exifData.GPSLatitude,
             longitude: exifData.GPSLongitude,
           });
+
+          // Create Google Maps link from GPS coordinates
+          const mapsLink = createGoogleMapsLink(
+            exifData.GPSLatitude,
+            exifData.GPSLongitude
+          );
+          setGoogleMapsLink(mapsLink);
+          console.log("Google Maps Link:", mapsLink);
+
+          // Generate QR code for the Google Maps link
+          try {
+            const qrCode = await generateQRCode(mapsLink);
+            setQrCodeDataUrl(qrCode);
+            console.log("QR Code generated successfully");
+          } catch (qrError) {
+            console.error("Fehler beim Generieren des QR-Codes:", qrError);
+          }
+        } else {
+          // Clear GPS-related data if no coordinates found
+          setGoogleMapsLink(null);
+          setQrCodeDataUrl(null);
         }
         if (exifData.Make && exifData.Model) {
           console.log("Kamera:", `${exifData.Make} ${exifData.Model}`);
@@ -115,10 +173,14 @@ export default function Page() {
       } else {
         console.log("Keine EXIF-Metadaten gefunden");
         setImageMetadata(null);
+        setGoogleMapsLink(null);
+        setQrCodeDataUrl(null);
       }
     } catch (error) {
       console.error("Fehler beim Extrahieren der EXIF-Metadaten:", error);
       setImageMetadata(null);
+      setGoogleMapsLink(null);
+      setQrCodeDataUrl(null);
     }
   };
 
@@ -198,6 +260,8 @@ export default function Page() {
   const removeImage = () => {
     setTreeImage(null);
     setImageMetadata(null);
+    setGoogleMapsLink(null);
+    setQrCodeDataUrl(null);
     if (imagePreview) {
       URL.revokeObjectURL(imagePreview);
       setImagePreview(null);
@@ -364,6 +428,8 @@ export default function Page() {
                       <Image
                         src={imagePreview}
                         alt="Baumbild Vorschau"
+                        width={400}
+                        height={320}
                         className="max-h-80 w-full rounded-md object-contain"
                       />
                       <button
@@ -383,6 +449,48 @@ export default function Page() {
             </div>
             <ErrorMessage message={errors.treeImage || ""} />
           </div>
+
+          {/* Google Maps Link and QR Code */}
+          {googleMapsLink && qrCodeDataUrl && (
+            <div className="relative">
+              <div className="flex flex-col gap-1">
+                <label className="flex items-center gap-2 pl-1 text-sm">
+                  <MapPin className="h-4 w-4" />
+                  Standort
+                </label>
+                <div className="border-muted-foreground/25 rounded-md border-2 p-4">
+                  <div className="flex flex-col items-center gap-4">
+                    {/* QR Code */}
+                    <div className="text-center">
+                      <Image
+                        src={qrCodeDataUrl}
+                        alt="QR Code für Google Maps"
+                        width={200}
+                        height={200}
+                        className="border-muted-foreground/25 mx-auto rounded-md border"
+                      />
+                      <p className="text-muted-foreground mt-2 text-xs">
+                        QR-Code für Standort
+                      </p>
+                    </div>
+
+                    {/* Google Maps Link */}
+                    <div className="text-center">
+                      <a
+                        href={googleMapsLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80 inline-flex items-center gap-2 transition-colors"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        In Google Maps öffnen
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Tree ID */}
           <div className="relative">
