@@ -2,7 +2,7 @@ import { LinkAnchor } from "@/app/components/ui/link-anchor";
 import { Bell } from "lucide-react";
 import { NavButton } from "@/app/components/navbar/nav-button";
 import Container from "@/app/components/container";
-import UserDropdown from "../ui/user-dropdown";
+// import UserDropdown from "../ui/user-dropdown";
 import Link from "next/link";
 import { CompanyLogo } from "../logos/company-logo";
 
@@ -41,8 +41,8 @@ export function Navbar() {
                 <Bell strokeWidth={2} size={20} />
               </NavButton>
             </div>
-            {/* User Avatar */}
-            <UserDropdown />
+            {/* User Avatar - temporarily disabled due to missing Supabase config */}
+            {/* <UserDropdown /> */}
           </div>
         </div>
       </Container>
