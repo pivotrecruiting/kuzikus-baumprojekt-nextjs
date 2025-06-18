@@ -5,7 +5,7 @@ import Container from "@/app/components/container";
 import { InputWithLabel } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { ErrorMessage } from "@/app/(pages)/(auth)/components/error-message";
-import { Upload, Calendar } from "lucide-react";
+import { Upload } from "lucide-react";
 
 export default function Page() {
   const [formData, setFormData] = useState({
@@ -158,8 +158,7 @@ export default function Page() {
                   required
                   className="bg-input w-full rounded-md border-transparent px-4 py-3 text-[16px] outline-none focus:border-transparent focus:ring-0 focus:outline focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                   aria-invalid={!!errors.expiryDate}
-                />
-                <Calendar className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2" />
+                />{" "}
               </div>
             </div>
             <ErrorMessage message={errors.expiryDate || ""} />
