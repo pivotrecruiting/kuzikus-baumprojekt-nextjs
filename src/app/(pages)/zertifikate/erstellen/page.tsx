@@ -176,6 +176,8 @@ export default function Page() {
       },
     };
 
+    console.log("Prepared Certificate Data:", certificateData);
+
     return certificateData;
   };
 
