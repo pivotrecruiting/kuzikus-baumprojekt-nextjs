@@ -9,6 +9,88 @@ import { Upload, X, MapPin, ExternalLink } from "lucide-react";
 import exifr from "exifr";
 import Image from "next/image";
 import QRCode from "qrcode";
+import { convertImageToBase64 } from "@/app/utils/helpers/convert-image-to-base-64";
+
+// TypeScript interface for EXIF image metadata
+interface ImageMetadata {
+  // Basic camera information
+  Make?: string;
+  Model?: string;
+  Software?: string;
+  HostComputer?: string;
+
+  // Image properties
+  Orientation?: string;
+  XResolution?: number;
+  YResolution?: number;
+  ResolutionUnit?: string;
+  ExifImageWidth?: number;
+  ExifImageHeight?: number;
+
+  // Date and time
+  ModifyDate?: string;
+  DateTimeOriginal?: string;
+  CreateDate?: string;
+  OffsetTime?: string;
+  OffsetTimeOriginal?: string;
+  OffsetTimeDigitized?: string;
+
+  // Exposure settings
+  ExposureTime?: number;
+  FNumber?: number;
+  ExposureProgram?: string;
+  ISO?: number;
+  ExifVersion?: string;
+  ShutterSpeedValue?: number;
+  ApertureValue?: number;
+  BrightnessValue?: number;
+  ExposureCompensation?: number;
+  MeteringMode?: string;
+  Flash?: string;
+  ExposureMode?: string;
+  WhiteBalance?: string;
+
+  // Lens information
+  FocalLength?: number;
+  FocalLengthIn35mmFormat?: number;
+  LensInfo?: number[];
+  LensMake?: string;
+  LensModel?: string;
+
+  // Image processing
+  ComponentsConfiguration?: Record<string, number>;
+  SubSecTimeOriginal?: string;
+  SubSecTimeDigitized?: string;
+  FlashpixVersion?: string;
+  ColorSpace?: number;
+  SensingMethod?: string;
+  SceneType?: string;
+  DigitalZoomRatio?: number;
+  SceneCaptureType?: string;
+  CompositeImage?: string;
+
+  // Subject area
+  SubjectArea?: Record<string, number>;
+
+  // GPS information
+  GPSLatitudeRef?: string;
+  GPSLatitude?: number[];
+  GPSLongitudeRef?: string;
+  GPSLongitude?: number[];
+  GPSAltitudeRef?: Record<string, number>;
+  GPSAltitude?: number;
+  GPSTimeStamp?: string;
+  GPSSpeedRef?: string;
+  GPSSpeed?: number;
+  GPSImgDirectionRef?: string;
+  GPSImgDirection?: number;
+  GPSDestBearingRef?: string;
+  GPSDestBearing?: number;
+  GPSDateStamp?: string;
+  GPSHPositioningError?: number;
+  latitude?: number;
+  longitude?: number;
+}
 
 export default function Page() {
   const [formData, setFormData] = useState({
@@ -31,10 +113,71 @@ export default function Page() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [treeImage, setTreeImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageMetadata, setImageMetadata] = useState<unknown>(null);
+  const [imageMetadata, setImageMetadata] = useState<ImageMetadata | null>(
+    null
+  );
   const [googleMapsLink, setGoogleMapsLink] = useState<string | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Prepare form data for R Markdown backend
+  const prepareFormDataForRMarkdown = () => {
+    const certificateData = {
+      // Basic certificate information
+      certificate: {
+        owner: formData.owner,
+        occasion: formData.occasion,
+        expiryDate: formData.expiryDate,
+        treeId: formData.treeId,
+        photographer: formData.photographer,
+        createdAt: new Date().toISOString(),
+      },
+
+      // Image information with base64 data
+      image: {
+        fileName: treeImage?.name || null,
+        fileSize: treeImage?.size || null,
+        fileType: treeImage?.type || null,
+        hasMetadata: !!imageMetadata,
+        base64Data: null as string | null, // Will be populated below
+      },
+
+      // GPS and location data
+      location: googleMapsLink
+        ? {
+            googleMapsUrl: googleMapsLink,
+            hasQrCode: !!qrCodeDataUrl,
+            qrCodeDataUrl: qrCodeDataUrl,
+          }
+        : null,
+
+      // EXIF metadata (if available)
+      metadata: imageMetadata
+        ? {
+            dateTime: imageMetadata.DateTimeOriginal || null,
+            make: imageMetadata.Make || null,
+            model: imageMetadata.Model || null,
+            imageWidth: imageMetadata.ExifImageWidth || null,
+            imageHeight: imageMetadata.ExifImageHeight || null,
+            gpsLatitude: imageMetadata.GPSLatitude || null,
+            gpsLongitude: imageMetadata.GPSLongitude || null,
+            software: imageMetadata.Software || null,
+            copyright: null,
+          }
+        : null,
+
+      // Certificate generation settings
+      generation: {
+        format: "pdf",
+        template: "tree-certificate",
+        includeQrCode: !!qrCodeDataUrl,
+        includeMetadata: !!imageMetadata,
+        includeLocation: !!googleMapsLink,
+      },
+    };
+
+    return certificateData;
+  };
 
   // Set default expiry date to 1 year from now
   const getDefaultExpiryDate = () => {
@@ -309,10 +452,37 @@ export default function Page() {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      // TODO: Implement form submission logic with treeImage
-      console.log("Form data:", formData);
-      console.log("Tree image:", treeImage);
-      console.log("Image metadata:", imageMetadata);
+      try {
+        // Prepare data for R Markdown backend
+        const certificateData = prepareFormDataForRMarkdown();
+
+        // Convert image to base64 if available
+        if (treeImage) {
+          const base64Data = await convertImageToBase64(treeImage);
+          certificateData.image.base64Data = base64Data;
+        }
+
+        // Send to R Markdown backend
+        const response = await fetch("/api/certificates/generate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(certificateData),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log("Certificate generated successfully:", result);
+          // Handle success
+        } else {
+          console.error("Failed to generate certificate");
+          // Handle error
+        }
+      } catch (error) {
+        console.error("Error generating certificate:", error);
+        // Handle error
+      }
     }
 
     setIsSubmitting(false);
