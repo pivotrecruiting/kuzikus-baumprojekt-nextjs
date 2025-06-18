@@ -475,7 +475,7 @@ export default function Page() {
             body: JSON.stringify(certificateData),
           }
         );
-
+        console.log("response: ", response);
         if (response.ok) {
           const result = await response.json();
           console.log("Certificate generated successfully:", result);
