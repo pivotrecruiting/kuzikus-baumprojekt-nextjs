@@ -23,7 +23,7 @@ export default function Navbar() {
           {/* Logo Container */}
 
           <Link
-            href="/"
+            href="/dashboard"
             className="flex items-center"
             aria-label="Zurück zur Startseite"
           >

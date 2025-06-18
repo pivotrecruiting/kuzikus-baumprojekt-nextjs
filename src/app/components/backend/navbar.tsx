@@ -2,7 +2,7 @@ import { LinkAnchor } from "@/app/components/ui/link-anchor";
 import { Bell } from "lucide-react";
 import { NavButton } from "@/app/components/navbar/nav-button";
 import Container from "@/app/components/container";
-import UserDropdown from "../ui/user-dropdown";
+// import UserDropdown from "../ui/user-dropdown";
 import Link from "next/link";
 import { CompanyLogo } from "../logos/company-logo";
 
@@ -12,15 +12,22 @@ export function Navbar() {
       <Container>
         <div className="flex items-center justify-between py-2">
           <Link href="/">
-            <CompanyLogo />
+            <CompanyLogo className="w-48" />
           </Link>
-          <div className="flex items-center gap-6 py-3">
+          <div className="flex items-center gap-8 py-6">
             <LinkAnchor
               className="text-muted-foreground font-medium"
-              size="md"
+              size="lg"
               href="/"
             >
               Dashboard
+            </LinkAnchor>
+            <LinkAnchor
+              className="text-muted-foreground font-medium"
+              size="lg"
+              href="/zertifikate"
+            >
+              Zertifikate
             </LinkAnchor>
           </div>
           <div className="flex items-center gap-2">
@@ -34,8 +41,8 @@ export function Navbar() {
                 <Bell strokeWidth={2} size={20} />
               </NavButton>
             </div>
-            {/* User Avatar */}
-            <UserDropdown />
+            {/* User Avatar - temporarily disabled due to missing Supabase config */}
+            {/* <UserDropdown /> */}
           </div>
         </div>
       </Container>
