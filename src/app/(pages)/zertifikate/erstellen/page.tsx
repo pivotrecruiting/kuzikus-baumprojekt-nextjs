@@ -357,32 +357,21 @@ export default function Page() {
       const exifData = await exifr.parse(file);
 
       if (exifData) {
-        console.log("EXIF Metadata:", exifData);
         setImageMetadata(exifData);
 
         // Log specific useful metadata
-        if (exifData.DateTime) {
-          console.log("Aufnahmedatum:", exifData.DateTime);
-        }
         if (exifData.GPSLatitude && exifData.GPSLongitude) {
-          console.log("GPS Koordinaten:", {
-            latitude: exifData.GPSLatitude,
-            longitude: exifData.GPSLongitude,
-          });
-
           // Create Google Maps link from GPS coordinates
           const mapsLink = createGoogleMapsLink(
             exifData.GPSLatitude,
             exifData.GPSLongitude
           );
           setGoogleMapsLink(mapsLink);
-          console.log("Google Maps Link:", mapsLink);
 
           // Generate QR code for the Google Maps link
           try {
             const qrCode = await generateQRCode(mapsLink);
             setQrCodeDataUrl(qrCode);
-            console.log("QR Code generated successfully");
           } catch (qrError) {
             console.error("Fehler beim Generieren des QR-Codes:", qrError);
           }
@@ -391,17 +380,7 @@ export default function Page() {
           setGoogleMapsLink(null);
           setQrCodeDataUrl(null);
         }
-        if (exifData.Make && exifData.Model) {
-          console.log("Kamera:", `${exifData.Make} ${exifData.Model}`);
-        }
-        if (exifData.ImageWidth && exifData.ImageHeight) {
-          console.log(
-            "Bildgröße:",
-            `${exifData.ImageWidth}x${exifData.ImageHeight}`
-          );
-        }
       } else {
-        console.log("Keine EXIF-Metadaten gefunden");
         setImageMetadata(null);
         setGoogleMapsLink(null);
         setQrCodeDataUrl(null);
@@ -603,7 +582,6 @@ export default function Page() {
     if (Object.keys(newErrors).length === 0) {
       try {
         const certificateData = prepareFormDataForRMarkdown();
-        console.log("Prepared Certificate Data:", certificateData);
         if (treeImage) {
           const base64Data = await convertImageToBase64(
             treeImage,
