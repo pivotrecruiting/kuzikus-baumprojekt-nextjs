@@ -10,6 +10,7 @@ import exifr from "exifr";
 import Image from "next/image";
 import QRCode from "qrcode";
 import { convertImageToBase64 } from "@/app/utils/helpers/convert-image-to-base-64";
+import { toast } from "sonner";
 
 // TypeScript interface for EXIF image metadata
 interface ImageMetadata {
@@ -596,14 +597,41 @@ export default function Page() {
         });
         if (response.ok) {
           const result = await response.json();
-          // TODO:  Add Success & error handling
-          console.log("result: ", result);
+          // Success-Toast und PDF-Download
+          if (
+            Array.isArray(result) &&
+            result.length > 0 &&
+            typeof result[0] === "string"
+          ) {
+            const pdfBase64 = result[0];
+            // PDF als Download anbieten
+            const link = document.createElement("a");
+            link.href = `data:application/pdf;base64,${pdfBase64}`;
+            link.download = `baumzertifikat.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success(
+              "Zertifikat erfolgreich erstellt! PDF-Download wurde gestartet."
+            );
+          } else {
+            toast.error(
+              "Zertifikat erstellt, aber PDF konnte nicht verarbeitet werden."
+            );
+          }
         } else {
-          console.error("Something went wrong");
+          let errorMsg = "Etwas ist schiefgelaufen.";
+          try {
+            const errorData = await response.json();
+            if (errorData?.error) errorMsg = errorData.error;
+          } catch {}
+          toast.error(errorMsg);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         // Error handling
-        console.error(error);
+        let errorMsg = "Unbekannter Fehler.";
+        if (error instanceof Error) errorMsg = error.message;
+        toast.error(errorMsg);
         return;
       }
     }
