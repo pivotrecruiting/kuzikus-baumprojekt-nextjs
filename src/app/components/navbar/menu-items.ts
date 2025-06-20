@@ -68,10 +68,10 @@ export const MENU_ITEMS: TMenuItem[] = [
 // export const PROJECT_SPECIFIC_MENU_ITEMS: TMenuItem[] = [
 //   {
 //     title: "Dashboard",
-//     href: "/dashboard",
+//     href: "/",
 //     children: [
-//       { title: "Analytics", href: "/dashboard/analytics" },
-//       { title: "Settings", href: "/dashboard/settings" },
+//       { title: "Analytics", href: "//analytics" },
+//       { title: "Settings", href: "//settings" },
 //     ],
 //   },
 //   // Add your project-specific menu items here

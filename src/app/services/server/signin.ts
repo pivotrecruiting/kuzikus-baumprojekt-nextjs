@@ -64,5 +64,5 @@ export async function signin(formData: FormData) {
     return redirect(appendMultipleErrorParams(returnTo, errors));
   }
 
-  return redirect("/dashboard");
+  return redirect("/");
 }
