@@ -84,11 +84,7 @@ export const convertImageToBase64 = async (
       break;
   }
 
-  // Zeige das Canvas-Bild als DataURL im neuen Tab (Debug)
   const debugDataUrl = canvas.toDataURL("image/jpeg", 0.92);
-  if (typeof window !== "undefined") {
-    window.open(debugDataUrl, "_blank");
-  }
 
   // Als JPEG ohne EXIF exportieren
   return debugDataUrl;
