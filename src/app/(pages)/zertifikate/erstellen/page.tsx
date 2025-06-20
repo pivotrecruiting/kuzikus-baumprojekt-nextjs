@@ -92,6 +92,29 @@ interface ImageMetadata {
   longitude?: number;
 }
 
+// Typen für Location und Metadata
+interface CertificateLocation {
+  latitudeDecimal: number;
+  longitudeDecimal: number;
+  googleMapsUrl: string | null;
+  hasQrCode: boolean;
+  qrCodeDataUrl: string | null;
+}
+
+interface CertificateMetadata {
+  dateTime: string | null;
+  make: string | null;
+  model: string | null;
+  imageWidth: number | null;
+  imageHeight: number | null;
+  gpsLatitude: number[] | null;
+  gpsLatitudeRef: string | null;
+  gpsLongitude: number[] | null;
+  gpsLongitudeRef: string | null;
+  software: string | null;
+  copyright: string | null;
+}
+
 export default function Page() {
   const [formData, setFormData] = useState({
     owner: "",
@@ -162,6 +185,63 @@ export default function Page() {
       mapsUrl = `https://www.google.com/maps?q=${gpsLatitudeRef === "S" ? -latDecimal : latDecimal},${gpsLongitudeRef === "W" ? -lonDecimal : lonDecimal}`;
     }
 
+    // Dezimal-Koordinaten berechnen
+    let latitudeDecimal: number | null = null;
+    let longitudeDecimal: number | null = null;
+    if (gpsLatitude && gpsLongitude) {
+      latitudeDecimal =
+        gpsLatitude[0] +
+        (gpsLatitude[1] || 0) / 60 +
+        (gpsLatitude[2] || 0) / 3600;
+      longitudeDecimal =
+        gpsLongitude[0] +
+        (gpsLongitude[1] || 0) / 60 +
+        (gpsLongitude[2] || 0) / 3600;
+      if (gpsLatitudeRef === "S") latitudeDecimal = -latitudeDecimal;
+      if (gpsLongitudeRef === "W") longitudeDecimal = -longitudeDecimal;
+    }
+
+    // Entscheide, wo die Location-Daten stehen sollen
+    let location: CertificateLocation | null = null;
+    let metadata: CertificateMetadata;
+    if (latitudeDecimal !== null && longitudeDecimal !== null) {
+      location = {
+        latitudeDecimal,
+        longitudeDecimal,
+        googleMapsUrl: mapsUrl || null,
+        hasQrCode: !!qrCodeDataUrl,
+        qrCodeDataUrl: qrCodeDataUrl || null,
+      };
+      metadata = {
+        dateTime: imageMetadata?.DateTimeOriginal || null,
+        make: imageMetadata?.Make || null,
+        model: imageMetadata?.Model || null,
+        imageWidth: imageMetadata?.ExifImageWidth || null,
+        imageHeight: imageMetadata?.ExifImageHeight || null,
+        gpsLatitude: null,
+        gpsLatitudeRef: null,
+        gpsLongitude: null,
+        gpsLongitudeRef: null,
+        software: imageMetadata?.Software || null,
+        copyright: null,
+      };
+    } else {
+      location = null;
+      metadata = {
+        dateTime: imageMetadata?.DateTimeOriginal || null,
+        make: imageMetadata?.Make || null,
+        model: imageMetadata?.Model || null,
+        imageWidth: imageMetadata?.ExifImageWidth || null,
+        imageHeight: imageMetadata?.ExifImageHeight || null,
+        gpsLatitude,
+        gpsLatitudeRef,
+        gpsLongitude,
+        gpsLongitudeRef,
+        software: imageMetadata?.Software || null,
+        copyright: null,
+      };
+    }
+
     return {
       certificate: {
         ...formData,
@@ -174,32 +254,14 @@ export default function Page() {
         hasMetadata: !!imageMetadata,
         base64Data: null as string | null, // Wird später gesetzt
       },
-      location: mapsUrl
-        ? {
-            googleMapsUrl: mapsUrl,
-            hasQrCode: !!qrCodeDataUrl,
-            qrCodeDataUrl: qrCodeDataUrl,
-          }
-        : null,
-      metadata: {
-        dateTime: imageMetadata?.DateTimeOriginal || null,
-        make: imageMetadata?.Make || null,
-        model: imageMetadata?.Model || null,
-        imageWidth: imageMetadata?.ExifImageWidth || null,
-        imageHeight: imageMetadata?.ExifImageHeight || null,
-        gpsLatitude,
-        gpsLatitudeRef,
-        gpsLongitude,
-        gpsLongitudeRef,
-        software: imageMetadata?.Software || null,
-        copyright: null,
-      },
+      location,
+      metadata,
       generation: {
         format: "pdf",
         template: "tree-certificate",
         includeQrCode: !!qrCodeDataUrl,
         includeMetadata: !!imageMetadata,
-        includeLocation: !!mapsUrl,
+        includeLocation: !!location,
       },
     };
   };
