@@ -10,6 +10,7 @@ import exifr from "exifr";
 import Image from "next/image";
 import QRCode from "qrcode";
 import { convertImageToBase64 } from "@/app/utils/helpers/convert-image-to-base-64";
+import { toast } from "sonner";
 
 // TypeScript interface for EXIF image metadata
 interface ImageMetadata {
@@ -92,6 +93,29 @@ interface ImageMetadata {
   longitude?: number;
 }
 
+// Typen für Location und Metadata
+interface CertificateLocation {
+  latitudeDecimal: number;
+  longitudeDecimal: number;
+  googleMapsUrl: string | null;
+  hasQrCode: boolean;
+  qrCodeDataUrl: string | null;
+}
+
+interface CertificateMetadata {
+  dateTime: string | null;
+  make: string | null;
+  model: string | null;
+  imageWidth: number | null;
+  imageHeight: number | null;
+  gpsLatitude: number[] | null;
+  gpsLatitudeRef: string | null;
+  gpsLongitude: number[] | null;
+  gpsLongitudeRef: string | null;
+  software: string | null;
+  copyright: string | null;
+}
+
 export default function Page() {
   const [formData, setFormData] = useState({
     owner: "",
@@ -162,6 +186,63 @@ export default function Page() {
       mapsUrl = `https://www.google.com/maps?q=${gpsLatitudeRef === "S" ? -latDecimal : latDecimal},${gpsLongitudeRef === "W" ? -lonDecimal : lonDecimal}`;
     }
 
+    // Dezimal-Koordinaten berechnen
+    let latitudeDecimal: number | null = null;
+    let longitudeDecimal: number | null = null;
+    if (gpsLatitude && gpsLongitude) {
+      latitudeDecimal =
+        gpsLatitude[0] +
+        (gpsLatitude[1] || 0) / 60 +
+        (gpsLatitude[2] || 0) / 3600;
+      longitudeDecimal =
+        gpsLongitude[0] +
+        (gpsLongitude[1] || 0) / 60 +
+        (gpsLongitude[2] || 0) / 3600;
+      if (gpsLatitudeRef === "S") latitudeDecimal = -latitudeDecimal;
+      if (gpsLongitudeRef === "W") longitudeDecimal = -longitudeDecimal;
+    }
+
+    // Entscheide, wo die Location-Daten stehen sollen
+    let location: CertificateLocation | null = null;
+    let metadata: CertificateMetadata;
+    if (latitudeDecimal !== null && longitudeDecimal !== null) {
+      location = {
+        latitudeDecimal,
+        longitudeDecimal,
+        googleMapsUrl: mapsUrl || null,
+        hasQrCode: !!qrCodeDataUrl,
+        qrCodeDataUrl: qrCodeDataUrl || null,
+      };
+      metadata = {
+        dateTime: imageMetadata?.DateTimeOriginal || null,
+        make: imageMetadata?.Make || null,
+        model: imageMetadata?.Model || null,
+        imageWidth: imageMetadata?.ExifImageWidth || null,
+        imageHeight: imageMetadata?.ExifImageHeight || null,
+        gpsLatitude: null,
+        gpsLatitudeRef: null,
+        gpsLongitude: null,
+        gpsLongitudeRef: null,
+        software: imageMetadata?.Software || null,
+        copyright: null,
+      };
+    } else {
+      location = null;
+      metadata = {
+        dateTime: imageMetadata?.DateTimeOriginal || null,
+        make: imageMetadata?.Make || null,
+        model: imageMetadata?.Model || null,
+        imageWidth: imageMetadata?.ExifImageWidth || null,
+        imageHeight: imageMetadata?.ExifImageHeight || null,
+        gpsLatitude,
+        gpsLatitudeRef,
+        gpsLongitude,
+        gpsLongitudeRef,
+        software: imageMetadata?.Software || null,
+        copyright: null,
+      };
+    }
+
     return {
       certificate: {
         ...formData,
@@ -174,32 +255,14 @@ export default function Page() {
         hasMetadata: !!imageMetadata,
         base64Data: null as string | null, // Wird später gesetzt
       },
-      location: mapsUrl
-        ? {
-            googleMapsUrl: mapsUrl,
-            hasQrCode: !!qrCodeDataUrl,
-            qrCodeDataUrl: qrCodeDataUrl,
-          }
-        : null,
-      metadata: {
-        dateTime: imageMetadata?.DateTimeOriginal || null,
-        make: imageMetadata?.Make || null,
-        model: imageMetadata?.Model || null,
-        imageWidth: imageMetadata?.ExifImageWidth || null,
-        imageHeight: imageMetadata?.ExifImageHeight || null,
-        gpsLatitude,
-        gpsLatitudeRef,
-        gpsLongitude,
-        gpsLongitudeRef,
-        software: imageMetadata?.Software || null,
-        copyright: null,
-      },
+      location,
+      metadata,
       generation: {
         format: "pdf",
         template: "tree-certificate",
         includeQrCode: !!qrCodeDataUrl,
         includeMetadata: !!imageMetadata,
-        includeLocation: !!mapsUrl,
+        includeLocation: !!location,
       },
     };
   };
@@ -295,32 +358,21 @@ export default function Page() {
       const exifData = await exifr.parse(file);
 
       if (exifData) {
-        console.log("EXIF Metadata:", exifData);
         setImageMetadata(exifData);
 
         // Log specific useful metadata
-        if (exifData.DateTime) {
-          console.log("Aufnahmedatum:", exifData.DateTime);
-        }
         if (exifData.GPSLatitude && exifData.GPSLongitude) {
-          console.log("GPS Koordinaten:", {
-            latitude: exifData.GPSLatitude,
-            longitude: exifData.GPSLongitude,
-          });
-
           // Create Google Maps link from GPS coordinates
           const mapsLink = createGoogleMapsLink(
             exifData.GPSLatitude,
             exifData.GPSLongitude
           );
           setGoogleMapsLink(mapsLink);
-          console.log("Google Maps Link:", mapsLink);
 
           // Generate QR code for the Google Maps link
           try {
             const qrCode = await generateQRCode(mapsLink);
             setQrCodeDataUrl(qrCode);
-            console.log("QR Code generated successfully");
           } catch (qrError) {
             console.error("Fehler beim Generieren des QR-Codes:", qrError);
           }
@@ -329,17 +381,7 @@ export default function Page() {
           setGoogleMapsLink(null);
           setQrCodeDataUrl(null);
         }
-        if (exifData.Make && exifData.Model) {
-          console.log("Kamera:", `${exifData.Make} ${exifData.Model}`);
-        }
-        if (exifData.ImageWidth && exifData.ImageHeight) {
-          console.log(
-            "Bildgröße:",
-            `${exifData.ImageWidth}x${exifData.ImageHeight}`
-          );
-        }
       } else {
-        console.log("Keine EXIF-Metadaten gefunden");
         setImageMetadata(null);
         setGoogleMapsLink(null);
         setQrCodeDataUrl(null);
@@ -541,7 +583,6 @@ export default function Page() {
     if (Object.keys(newErrors).length === 0) {
       try {
         const certificateData = prepareFormDataForRMarkdown();
-        console.log("Prepared Certificate Data:", certificateData);
         if (treeImage) {
           const base64Data = await convertImageToBase64(
             treeImage,
@@ -556,14 +597,41 @@ export default function Page() {
         });
         if (response.ok) {
           const result = await response.json();
-          // TODO:  Add Success & error handling
-          console.log("result: ", result);
+          // Success-Toast und PDF-Download
+          if (
+            Array.isArray(result) &&
+            result.length > 0 &&
+            typeof result[0] === "string"
+          ) {
+            const pdfBase64 = result[0];
+            // PDF als Download anbieten
+            const link = document.createElement("a");
+            link.href = `data:application/pdf;base64,${pdfBase64}`;
+            link.download = `baumzertifikat.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success(
+              "Zertifikat erfolgreich erstellt! PDF-Download wurde gestartet."
+            );
+          } else {
+            toast.error(
+              "Zertifikat erstellt, aber PDF konnte nicht verarbeitet werden."
+            );
+          }
         } else {
-          console.error("Something went wrong");
+          let errorMsg = "Etwas ist schiefgelaufen.";
+          try {
+            const errorData = await response.json();
+            if (errorData?.error) errorMsg = errorData.error;
+          } catch {}
+          toast.error(errorMsg);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         // Error handling
-        console.error(error);
+        let errorMsg = "Unbekannter Fehler.";
+        if (error instanceof Error) errorMsg = error.message;
+        toast.error(errorMsg);
         return;
       }
     }

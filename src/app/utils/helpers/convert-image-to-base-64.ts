@@ -23,63 +23,69 @@ export const convertImageToBase64 = async (
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas context konnte nicht erstellt werden");
 
-  // Standardwerte
-  let width = img.width;
-  let height = img.height;
-  let rotate = 0;
-  let flipX = false;
-  let flipY = false;
-
-  // Orientierung auswerten (EXIF-Standard)
-  // https://magnushoff.com/articles/jpeg-orientation/
+  // Transformationen
   switch (orientation) {
     case "Rotate 90 CW":
-      width = img.height;
-      height = img.width;
-      rotate = 90;
+      if (img.height > img.width) {
+        // Spezialfall: Bild ist schon im Hochformat, keine Rotation nötig
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+      } else {
+        canvas.width = img.height;
+        canvas.height = img.width;
+        ctx.save();
+        ctx.translate(canvas.width, 0);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+        ctx.restore();
+      }
       break;
     case "Rotate 180":
-      rotate = 180;
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.save();
+      ctx.translate(canvas.width, canvas.height);
+      ctx.rotate(Math.PI);
+      ctx.drawImage(img, 0, 0, img.width, img.height);
+      ctx.restore();
       break;
     case "Rotate 270 CW":
-      width = img.height;
-      height = img.width;
-      rotate = 270;
+      canvas.width = img.height;
+      canvas.height = img.width;
+      ctx.save();
+      ctx.rotate(-Math.PI / 2);
+      ctx.translate(-img.width, 0);
+      ctx.drawImage(img, 0, 0, img.width, img.height);
+      ctx.restore();
       break;
     case "Flip horizontal":
-      flipX = true;
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, 0, 0, img.width, img.height);
+      ctx.restore();
       break;
     case "Flip vertical":
-      flipY = true;
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.save();
+      ctx.translate(0, canvas.height);
+      ctx.scale(1, -1);
+      ctx.drawImage(img, 0, 0, img.width, img.height);
+      ctx.restore();
       break;
-    // Weitere Fälle je nach Bedarf
     default:
-      // Keine Rotation
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0, img.width, img.height);
       break;
   }
 
-  canvas.width = width;
-  canvas.height = height;
-
-  // Transformation anwenden
-  ctx.save();
-  if (rotate) {
-    ctx.translate(width / 2, height / 2);
-    ctx.rotate((rotate * Math.PI) / 180);
-    if (rotate === 90 || rotate === 270) {
-      ctx.drawImage(img, -height / 2, -width / 2, height, width);
-    } else {
-      ctx.drawImage(img, -width / 2, -height / 2, width, height);
-    }
-  } else {
-    if (flipX || flipY) {
-      ctx.translate(flipX ? width : 0, flipY ? height : 0);
-      ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
-    }
-    ctx.drawImage(img, 0, 0, width, height);
-  }
-  ctx.restore();
+  const debugDataUrl = canvas.toDataURL("image/jpeg", 0.92);
 
   // Als JPEG ohne EXIF exportieren
-  return canvas.toDataURL("image/jpeg", 0.92);
+  return debugDataUrl;
 };

@@ -1,11 +1,11 @@
-import type { NextRequest} from "next/server";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
     // Get the request body
     const body = await request.json();
-
+    console.log(body);
     // Forward the request to the external backend
     const response = await fetch("http://localhost:8000/generate-certificate", {
       method: "POST",
