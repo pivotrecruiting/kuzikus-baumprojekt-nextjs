@@ -108,6 +108,9 @@ export default function Page() {
     treeId?: string;
     photographer?: string;
     treeImage?: string;
+    latitude?: string;
+    longitude?: string;
+    mapsUrl?: string;
   }>({});
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -118,67 +121,87 @@ export default function Page() {
   );
   const [googleMapsLink, setGoogleMapsLink] = useState<string | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const [manualLocation, setManualLocation] = useState({
+    latitude: "",
+    longitude: "",
+    mapsUrl: "",
+    mapsParsed: false,
+  });
+  const [mapsParseError, setMapsParseError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Prepare form data for R Markdown backend
   const prepareFormDataForRMarkdown = () => {
-    const certificateData = {
-      // Basic certificate information
+    // GPS-Quelle bestimmen
+    let gpsLatitude = imageMetadata?.GPSLatitude || null;
+    let gpsLongitude = imageMetadata?.GPSLongitude || null;
+    let gpsLatitudeRef = imageMetadata?.GPSLatitudeRef || null;
+    let gpsLongitudeRef = imageMetadata?.GPSLongitudeRef || null;
+
+    // Falls keine EXIF-Koordinaten, nutze manuelle Eingabe
+    if (!gpsLatitude && manualLocation.latitude && manualLocation.longitude) {
+      const lat = parseFloat(manualLocation.latitude);
+      const lon = parseFloat(manualLocation.longitude);
+      gpsLatitude = [Math.abs(lat), 0, 0];
+      gpsLongitude = [Math.abs(lon), 0, 0];
+      gpsLatitudeRef = getLatRef(lat);
+      gpsLongitudeRef = getLonRef(lon);
+    }
+
+    // Google Maps Link ggf. aus manuellen Koordinaten
+    let mapsUrl = googleMapsLink;
+    if (!mapsUrl && gpsLatitude && gpsLongitude) {
+      const latDecimal =
+        gpsLatitude[0] +
+        (gpsLatitude[1] || 0) / 60 +
+        (gpsLatitude[2] || 0) / 3600;
+      const lonDecimal =
+        gpsLongitude[0] +
+        (gpsLongitude[1] || 0) / 60 +
+        (gpsLongitude[2] || 0) / 3600;
+      mapsUrl = `https://www.google.com/maps?q=${gpsLatitudeRef === "S" ? -latDecimal : latDecimal},${gpsLongitudeRef === "W" ? -lonDecimal : lonDecimal}`;
+    }
+
+    return {
       certificate: {
-        owner: formData.owner,
-        occasion: formData.occasion,
-        expiryDate: formData.expiryDate,
-        treeId: formData.treeId,
-        photographer: formData.photographer,
+        ...formData,
         createdAt: new Date().toISOString(),
       },
-
-      // Image information with base64 data
       image: {
         fileName: treeImage?.name || null,
         fileSize: treeImage?.size || null,
         fileType: treeImage?.type || null,
         hasMetadata: !!imageMetadata,
-        base64Data: null as string | null, // Will be populated below
+        base64Data: null as string | null, // Wird später gesetzt
       },
-
-      // GPS and location data
-      location: googleMapsLink
+      location: mapsUrl
         ? {
-            googleMapsUrl: googleMapsLink,
+            googleMapsUrl: mapsUrl,
             hasQrCode: !!qrCodeDataUrl,
             qrCodeDataUrl: qrCodeDataUrl,
           }
         : null,
-
-      // EXIF metadata (if available)
-      metadata: imageMetadata
-        ? {
-            dateTime: imageMetadata.DateTimeOriginal || null,
-            make: imageMetadata.Make || null,
-            model: imageMetadata.Model || null,
-            imageWidth: imageMetadata.ExifImageWidth || null,
-            imageHeight: imageMetadata.ExifImageHeight || null,
-            gpsLatitude: imageMetadata.GPSLatitude || null,
-            gpsLongitude: imageMetadata.GPSLongitude || null,
-            software: imageMetadata.Software || null,
-            copyright: null,
-          }
-        : null,
-
-      // Certificate generation settings
+      metadata: {
+        dateTime: imageMetadata?.DateTimeOriginal || null,
+        make: imageMetadata?.Make || null,
+        model: imageMetadata?.Model || null,
+        imageWidth: imageMetadata?.ExifImageWidth || null,
+        imageHeight: imageMetadata?.ExifImageHeight || null,
+        gpsLatitude,
+        gpsLatitudeRef,
+        gpsLongitude,
+        gpsLongitudeRef,
+        software: imageMetadata?.Software || null,
+        copyright: null,
+      },
       generation: {
         format: "pdf",
         template: "tree-certificate",
         includeQrCode: !!qrCodeDataUrl,
         includeMetadata: !!imageMetadata,
-        includeLocation: !!googleMapsLink,
+        includeLocation: !!mapsUrl,
       },
     };
-
-    console.log("Prepared Certificate Data:", certificateData);
-
-    return certificateData;
   };
 
   // Set default expiry date to 1 year from now
@@ -420,73 +443,130 @@ export default function Page() {
     }));
   };
 
+  const getLatRef = (lat: number) => (lat >= 0 ? "N" : "S");
+  const getLonRef = (lon: number) => (lon >= 0 ? "E" : "W");
+
+  // Funktion zum Parsen eines Google Maps Links
+  const parseGoogleMapsUrl = (url: string) => {
+    // 1. ?q=LAT,LNG
+    const regexQ = /[?&]q=([\-\d.]+),([\-\d.]+)/;
+    const matchQ = url.match(regexQ);
+    if (matchQ) {
+      const lat = matchQ[1];
+      const lng = matchQ[2];
+      setManualLocation((prev) => ({
+        ...prev,
+        latitude: lat,
+        longitude: lng,
+        mapsParsed: true,
+      }));
+      setMapsParseError(null);
+      return true;
+    }
+    // 2. /@LAT,LNG,
+    const regexAt = /\/[@]([\-\d.]+),([\-\d.]+),/;
+    const matchAt = url.match(regexAt);
+    if (matchAt) {
+      const lat = matchAt[1];
+      const lng = matchAt[2];
+      setManualLocation((prev) => ({
+        ...prev,
+        latitude: lat,
+        longitude: lng,
+        mapsParsed: true,
+      }));
+      setMapsParseError(null);
+      return true;
+    }
+    setMapsParseError("Konnte keine Koordinaten aus dem Link extrahieren.");
+    setManualLocation((prev) => ({ ...prev, mapsParsed: false }));
+    return false;
+  };
+
+  const handleManualLocationChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setManualLocation((prev) => ({
+      ...prev,
+      [name]: value,
+      mapsParsed: false,
+    }));
+    if (name === "mapsUrl") {
+      if (value.length > 10) {
+        parseGoogleMapsUrl(value);
+      } else {
+        setMapsParseError(null);
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Basic validation
-    const newErrors: typeof errors = {};
+    const newErrors: typeof errors & {
+      latitude?: string;
+      longitude?: string;
+      mapsUrl?: string;
+    } = {};
 
-    if (!formData.owner.trim()) {
-      newErrors.owner = "Inhaber*in ist erforderlich";
-    }
-
-    if (!formData.occasion.trim()) {
+    if (!formData.owner.trim()) newErrors.owner = "Inhaber*in ist erforderlich";
+    if (!formData.occasion.trim())
       newErrors.occasion = "Anlass ist erforderlich";
-    }
-
-    if (!formData.expiryDate) {
+    if (!formData.expiryDate)
       newErrors.expiryDate = "Ablaufdatum ist erforderlich";
-    }
-
-    if (!formData.treeId.trim()) {
-      newErrors.treeId = "Baum-ID ist erforderlich";
-    }
-
-    if (!formData.photographer.trim()) {
+    if (!formData.treeId.trim()) newErrors.treeId = "Baum-ID ist erforderlich";
+    if (!formData.photographer.trim())
       newErrors.photographer = "Fotograf*in ist erforderlich";
-    }
+    if (!treeImage) newErrors.treeImage = "Baumbild ist erforderlich";
 
-    if (!treeImage) {
-      newErrors.treeImage = "Baumbild ist erforderlich";
+    // Wenn keine EXIF-Koordinaten, dann entweder Lat+Lng oder ein gültiger Maps-Link
+    if (!imageMetadata?.GPSLatitude) {
+      const latOk = manualLocation.latitude && manualLocation.longitude;
+      const mapsOk = manualLocation.mapsUrl && manualLocation.mapsParsed;
+      if (!latOk && !mapsOk) {
+        newErrors.latitude = "Breitengrad oder Google Maps Link erforderlich";
+        newErrors.longitude = "Längengrad oder Google Maps Link erforderlich";
+        newErrors.mapsUrl =
+          "Bitte Koordinaten eingeben oder einen gültigen Google Maps Link";
+      }
+      if (manualLocation.mapsUrl && !manualLocation.mapsParsed) {
+        newErrors.mapsUrl = mapsParseError || "Ungültiger Google Maps Link";
+      }
     }
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
       try {
-        // Prepare data for R Markdown backend
         const certificateData = prepareFormDataForRMarkdown();
-
-        // Convert image to base64 if available
+        console.log("Prepared Certificate Data:", certificateData);
         if (treeImage) {
-          const base64Data = await convertImageToBase64(treeImage);
+          const base64Data = await convertImageToBase64(
+            treeImage,
+            imageMetadata?.Orientation
+          );
           certificateData.image.base64Data = base64Data;
         }
-
-        // Send to R Markdown backend
         const response = await fetch("/api/generate-certificate", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(certificateData),
         });
-        console.log("response: ", response);
         if (response.ok) {
           const result = await response.json();
-          console.log("Certificate generated successfully:", result);
-          // Handle success
+          // TODO:  Add Success & error handling
+          console.log("result: ", result);
         } else {
-          console.error("Failed to generate certificate");
-          // Handle error
+          console.error("Something went wrong");
         }
       } catch (error) {
-        console.error("Error generating certificate:", error);
-        // Handle error
+        // Error handling
+        console.error(error);
+        return;
       }
     }
-
     setIsSubmitting(false);
   };
 
@@ -693,6 +773,56 @@ export default function Page() {
             />
             <ErrorMessage message={errors.photographer || ""} />
           </div>
+
+          {/* Manuelle Koordinaten-Eingabe */}
+          {!imageMetadata?.GPSLatitude && (
+            <div className="mt-4 flex flex-col gap-2">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <InputWithLabel
+                    name="latitude"
+                    label="Breitengrad (Latitude)"
+                    type="number"
+                    step="any"
+                    value={manualLocation.latitude}
+                    onChange={handleManualLocationChange}
+                    required={!manualLocation.mapsUrl}
+                    error={errors.latitude}
+                    readOnly={manualLocation.mapsParsed}
+                  />
+                </div>
+                <div className="flex-1">
+                  <InputWithLabel
+                    name="longitude"
+                    label="Längengrad (Longitude)"
+                    type="number"
+                    step="any"
+                    value={manualLocation.longitude}
+                    onChange={handleManualLocationChange}
+                    required={!manualLocation.mapsUrl}
+                    error={errors.longitude}
+                    readOnly={manualLocation.mapsParsed}
+                  />
+                </div>
+              </div>
+              <div>
+                <InputWithLabel
+                  name="mapsUrl"
+                  label="Google Maps Link (optional)"
+                  type="text"
+                  value={manualLocation.mapsUrl}
+                  onChange={handleManualLocationChange}
+                  error={errors.mapsUrl}
+                  placeholder="https://www.google.com/maps?q=..."
+                />
+                {mapsParseError && (
+                  <p className="text-destructive mt-1 text-sm">
+                    {mapsParseError}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="flex gap-4 pt-4">

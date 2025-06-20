@@ -16,7 +16,7 @@ export default function NotFound() {
           Sie zur Startseite zurück.
         </p>
         <Button asChild>
-          <Link href="/dashboard">Zurück zur Startseite</Link>
+          <Link href="/">Zurück zur Startseite</Link>
         </Button>
       </div>
     </Container>
